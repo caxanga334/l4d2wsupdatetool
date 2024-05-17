@@ -19,3 +19,11 @@ The script uses the Steam web API to fetch the last updated timestamp of each ad
   * subprocess
   * shutil
   * datetime
+* Steam web API key
+* Steam account with Steam guard disabled.
+
+# Usage
+
+Open `workshop_updater.py` and edit the *Tool Settings* as needed.
+
+Then run python.
