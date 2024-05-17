@@ -28,3 +28,7 @@ The script uses the Steam web API to fetch the last updated timestamp of each ad
 Open `workshop_updater.py` and edit the *Tool Settings* as needed.
 
 Then run python.
+
+# Limitations
+
+* The tool currently doesn't check if a download has failed.
