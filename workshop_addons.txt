@@ -1,0 +1,3 @@
+// List of workshop addons to download and update
+// Lines with '//' are comments
+// One workshop file ID per line

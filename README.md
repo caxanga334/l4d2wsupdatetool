@@ -1,2 +1,21 @@
-# l4d2wsupdatetool
-Left 4 Dead 2 Steam Workshop Updater Tool
+# Left 4 Dead 2 Steam Workshop Updater Tool
+
+A python script to automatically download and install Left 4 Dead 2 workshop addons for dedicated servers.
+
+The script uses the Steam web API to fetch the last updated timestamp of each addon. This is then compared to a saved timestamp if available.
+
+# Features
+* Automatic download and install
+* Only downloads new or updated addons
+
+# Requirements
+* Python 3.11
+* Python libraries:
+  * requests
+  * json
+  * os
+  * logging
+  * time
+  * subprocess
+  * shutil
+  * datetime
