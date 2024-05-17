@@ -19,7 +19,7 @@ The script uses the Steam web API to fetch the last updated timestamp of each ad
   * subprocess
   * shutil
   * datetime
-* Steam web API key
+* Steam web API key.
 * Steam account with Steam guard disabled.
 
 # Usage
