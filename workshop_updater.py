@@ -1,4 +1,4 @@
-import requests, json, os, logging, time, subprocess, shutil
+import requests, json, os, logging, time, subprocess, shutil, shlex
 from datetime import datetime
 
 # Tool Settings, modify below as needed
@@ -23,7 +23,7 @@ serverPath = os.path.join('c:', os.sep, 'myservers', 'left4dead2ds', 'left4dead2
 steamAPIURL = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
 appID = '550' # While yes, we can get this from the API response, this script was made for a single game: Left 4 Dead 2
 currentTime = int(datetime.now().timestamp()) # Current time as a UNIX timestamp
-toolVersion = "1.0.0"
+toolVersion = "1.0.1"
 
 def split_list_every(source, step):
   return [source[i::step] for i in range(step)]
@@ -179,9 +179,16 @@ class WorkshopUpdater(object):
         entryargs = entryargs + download_arg
 
       args = args + entryargs + "+quit"
-      steamcmd = steamCMDPath + " " + args
+      vargs = shlex.split(args)
+      steamcmd = steamCMDPath
+      command = []
+      command.append(steamcmd)
+
+      for argument in vargs:
+        command.append(argument)
+
       self.logger.info("Starting SteamCMD {0} of {1}.".format(i, i_max))
-      subprocess.run(steamcmd)
+      subprocess.run(command)
       self.logger.info("SteamCMD done.")
       i = i + 1
 
