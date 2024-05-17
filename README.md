@@ -32,3 +32,5 @@ Then run python.
 # Limitations
 
 * The tool currently doesn't check if a download has failed.
+
+Run the tool with `--check-addons` to check for extra and missing addons. Missing addons will be downloaded automatically. Extras will be logged but not deleted.

@@ -1,5 +1,6 @@
 import requests, json, os, logging, time, subprocess, shutil, shlex
 from datetime import datetime
+from argparse import ArgumentParser, RawTextHelpFormatter
 
 # Tool Settings, modify below as needed
 
@@ -23,7 +24,8 @@ serverPath = os.path.join('c:', os.sep, 'myservers', 'left4dead2ds', 'left4dead2
 steamAPIURL = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
 appID = '550' # While yes, we can get this from the API response, this script was made for a single game: Left 4 Dead 2
 currentTime = int(datetime.now().timestamp()) # Current time as a UNIX timestamp
-toolVersion = "1.0.1"
+toolVersion = "1.1.0"
+ProcessArgs = None
 
 def split_list_every(source, step):
   return [source[i::step] for i in range(step)]
@@ -52,6 +54,7 @@ class WorkshopUpdater(object):
     self.api_entries = []
     self.last_updated = 0 # UNIX timestamp of the last time this tool updated the workshop entries
     self.saved_data = None
+    self.forced_update_ids = []
 
   def setup_logger(self):
     self.log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
@@ -215,6 +218,11 @@ class WorkshopUpdater(object):
             need_update.append(workshopentry.id)
             self.logger.info("Updating new entry " + workshopentry.name)
 
+      # Add forced update items
+      for id in self.forced_update_ids:
+        if id not in need_update:
+          need_update.append(id)
+
     # We don't have saved data, update all addons
     else:
       for workshopentry in self.api_entries:
@@ -247,15 +255,52 @@ class WorkshopUpdater(object):
             shutil.move(os.path.join(root, vpk), os.path.join(serverPath, vpk))
             self.logger.info("Moving file to server from {0} to {1}".format(os.path.join(root, vpk), os.path.join(serverPath, vpk)))
 
+  def check_and_report_addons(self):
+    found_ids = []
 
+    for file in os.listdir(serverPath):
+      if file.endswith('.vpk'):
+        name = os.path.splitext(os.path.basename(file))[0]
+        id = 0
+        try:
+          id = int(name)
+        except ValueError:
+          continue
+        
+        if id not in self.workshop_ids:
+          self.logger.info("Extra file: {0}".format(file))
+        elif id in self.workshop_ids:
+          found_ids.append(id)
 
-updater = WorkshopUpdater()
-updater.setup_logger()
-updater.logger.info("Starting workshop updater tool " + toolVersion + ".")
-updater.load_workshop_ids()
-updater.load_saved_data()
-updater.build_post_data()
-updater.make_http_request()
-updater.store_api_response()
-updater.update_steamcmd()
-updater.save_data()
+    for id in self.workshop_ids:
+      if id not in found_ids:
+        self.logger.warning("Missing file: {0}.vpk".format(id))
+        self.forced_update_ids.append(id)
+
+    if len(self.forced_update_ids) != 0:
+      self.logger.warning("{0} missing files were detected!".format(len(self.forced_update_ids)))
+    else:
+      print("No missing files were detected!")
+      quit()
+
+if __name__ == "__main__":
+  parser = ArgumentParser(description = 'Automatically download and install Left 4 Dead 2 addons on Dedicated Servers.', formatter_class=RawTextHelpFormatter)
+  parser.add_argument('-c', '--check-addons', 
+                      help='Compares installed addons and reports for missing or extra addons.', action='store_true', default=False, dest='check_addons')
+
+  ProcessArgs = parser.parse_args()
+
+  updater = WorkshopUpdater()
+  updater.setup_logger()
+  updater.logger.info("Starting workshop updater tool " + toolVersion + ".")
+  updater.load_workshop_ids()
+  updater.load_saved_data()
+
+  if ProcessArgs.check_addons:
+    updater.check_and_report_addons()
+
+  updater.build_post_data()
+  updater.make_http_request()
+  updater.store_api_response()
+  updater.update_steamcmd()
+  updater.save_data()
