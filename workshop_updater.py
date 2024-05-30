@@ -24,18 +24,19 @@ serverPath = os.path.join('c:', os.sep, 'myservers', 'left4dead2ds', 'left4dead2
 steamAPIURL = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
 appID = '550' # While yes, we can get this from the API response, this script was made for a single game: Left 4 Dead 2
 currentTime = int(datetime.now().timestamp()) # Current time as a UNIX timestamp
-toolVersion = "1.1.0"
+toolVersion = "1.2.0"
 ProcessArgs = None
 
 def split_list_every(source, step):
   return [source[i::step] for i in range(step)]
 
 class WorkshopEntry(object):
-  def __init__(self, id: int, title: str, timestamp: int) -> None:
+  def __init__(self, id: int, title: str, timestamp: int, filesize: int) -> None:
     self.name = title
     self.id = id
     self.timestamp = timestamp
     self.outdated = True
+    self.filesize = filesize
 
   def NeedsUpdate(self):
     return self.outdated
@@ -55,6 +56,14 @@ class WorkshopUpdater(object):
     self.last_updated = 0 # UNIX timestamp of the last time this tool updated the workshop entries
     self.saved_data = None
     self.forced_update_ids = []
+
+  def find_entry_by_id(self, id: int) -> WorkshopEntry:
+    for entry in self.api_entries:
+      if entry.id == id:
+        return entry
+
+    return None
+
 
   def setup_logger(self):
     self.log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
@@ -119,12 +128,18 @@ class WorkshopUpdater(object):
       name = entry['title']
       id = int(entry['publishedfileid'])
       timestamp = 0
+      size = -1
       if 'time_updated' in entry:
         timestamp = entry['time_updated']
       else:
         timestamp = entry['time_created']
 
-      we = WorkshopEntry(id, name, timestamp)
+      # Get file size
+      if 'file_size' in entry:
+        # Size is a string
+        size = int(entry['file_size'])
+
+      we = WorkshopEntry(id, name, timestamp, size)
       self.api_entries.append(we)
 
     for workshopentry in self.api_entries:
@@ -142,6 +157,7 @@ class WorkshopUpdater(object):
       outArrayEntry['id'] = workshopentry.id
       outArrayEntry['timestamp'] = workshopentry.timestamp
       outArrayEntry['title'] = workshopentry.name # Not really used, saved to help identify addons
+      outArrayEntry['filesize'] = workshopentry.filesize
       outData['workshop_entries'].append(outArrayEntry)
 
     outStr = json.dumps(outData, ensure_ascii=False, indent=4)
@@ -283,10 +299,34 @@ class WorkshopUpdater(object):
       print("No missing files were detected!")
       quit()
 
+  def validate_addons(self):
+    for file in os.listdir(serverPath):
+      if file.endswith('.vpk'):
+        name = os.path.splitext(os.path.basename(file))[0]
+        id = 0
+        try:
+          id = int(name)
+        except ValueError:
+          continue
+
+        entry = self.find_entry_by_id(id)
+
+        if entry != None and entry.filesize > 0:
+          size = os.path.getsize(os.path.join(serverPath, file))
+          if size != entry.filesize:
+            self.forced_update_ids.append(id)
+            print("Workshop Addon file size \"{0}\" ({1}) differs from Steam API reported size ({2})!".format(entry.name, size, entry.filesize))
+            self.logger.warning("Workshop Addon \"{0}\" file size ({1}) differs from Steam API reported size ({2})!".format(entry.name, size, entry.filesize))
+          else:
+            self.logger.info("Workshop Addon \"{0}\" file size ({1}) matches size from Steam API ({2})!".format(entry.name, size, entry.filesize))
+
+
 if __name__ == "__main__":
   parser = ArgumentParser(description = 'Automatically download and install Left 4 Dead 2 addons on Dedicated Servers.', formatter_class=RawTextHelpFormatter)
   parser.add_argument('-c', '--check-addons', 
                       help='Compares installed addons and reports for missing or extra addons.', action='store_true', default=False, dest='check_addons')
+  parser.add_argument('-v', '--validate', 
+                      help='Validates installed addons by comparing their file size with the reported size from Steam API', action='store_true', default=False, dest='validate')
 
   ProcessArgs = parser.parse_args()
 
@@ -302,5 +342,9 @@ if __name__ == "__main__":
   updater.build_post_data()
   updater.make_http_request()
   updater.store_api_response()
+
+  if ProcessArgs.validate:
+    updater.validate_addons()
+
   updater.update_steamcmd()
   updater.save_data()

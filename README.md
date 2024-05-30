@@ -8,6 +8,10 @@ The script uses the Steam web API to fetch the last updated timestamp of each ad
 * Automatic download and install
 * Only downloads new or updated addons
 
+# Parameters
+* `--check-addons` Checks for extra and missing addons. Missing addons will be download and extras will be logged but not deleted.
+* `--validate` Compares the file size of each addon with the file size reported by Steam. If they differ, the addon will be downloaded again.
+
 # Requirements
 * Python 3.11
 * Python libraries:
@@ -23,6 +27,7 @@ The script uses the Steam web API to fetch the last updated timestamp of each ad
   * argparse
 * Steam web API key.
 * Steam account with Steam guard disabled.
+* SteamCMD
 
 # Usage
 
