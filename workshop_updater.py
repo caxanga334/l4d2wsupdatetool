@@ -24,7 +24,7 @@ serverPath = os.path.join('c:', os.sep, 'myservers', 'left4dead2ds', 'left4dead2
 steamAPIURL = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
 appID = '550' # While yes, we can get this from the API response, this script was made for a single game: Left 4 Dead 2
 currentTime = int(datetime.now().timestamp()) # Current time as a UNIX timestamp
-toolVersion = "1.2.0"
+toolVersion = "1.2.1"
 ProcessArgs = None
 
 def split_list_every(source, step):
@@ -125,6 +125,10 @@ class WorkshopUpdater(object):
     array = self.json_response['response']['publishedfiledetails']
 
     for entry in array:
+      if entry['result'] != 1:
+        self.logger.warning("Bad result for workshop ID " + entry['publishedfileid'] + "!")
+        continue
+        
       name = entry['title']
       id = int(entry['publishedfileid'])
       timestamp = 0
